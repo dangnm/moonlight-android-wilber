@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
@@ -40,10 +42,12 @@ public class MediaCodecHelper {
     private static final List<String> refFrameInvalidationHevcPrefixes;
     private static final List<String> useFourSlicesPrefixes;
     private static final List<String> qualcommDecoderPrefixes;
+    private static final List<String> mtkDecoderPrefixes;
     private static final List<String> kirinDecoderPrefixes;
     private static final List<String> exynosDecoderPrefixes;
     private static final List<String> amlogicDecoderPrefixes;
     private static final List<String> knownVendorLowLatencyOptions;
+    private static Context appContext;
 
     public static final boolean SHOULD_BYPASS_SOFTWARE_BLOCK =
             Build.HARDWARE.equals("ranchu") || Build.HARDWARE.equals("cheets") || Build.BRAND.equals("Android-x86");
@@ -231,6 +235,13 @@ public class MediaCodecHelper {
     }
 
     static {
+        mtkDecoderPrefixes = new LinkedList<>();
+
+        mtkDecoderPrefixes.add("omx.mtk");
+        mtkDecoderPrefixes.add("c2.mtk");
+    }
+
+    static {
         kirinDecoderPrefixes = new LinkedList<>();
 
         kirinDecoderPrefixes.add("omx.hisi");
@@ -308,6 +319,7 @@ public class MediaCodecHelper {
         if (initialized) {
             return;
         }
+        appContext = context.getApplicationContext();
 
         // Older Sony ATVs (SVP-DTV15) have broken MediaTek codecs (decoder hangs after rendering the first frame).
         // I know the Fire TV 2 and 3 works, so I'll whitelist Amazon devices which seem to actually be tested.
@@ -575,6 +587,17 @@ public class MediaCodecHelper {
                     setNewOption = true;
                 }
             }
+            else if (isDecoderInList(mtkDecoderPrefixes, decoderInfo.getName())) {
+                if (tryNumber < 4) {
+                    videoFormat.setInteger("vendor.mtk.vdec.cpu.boost.mode.value", 1);
+                    videoFormat.setInteger("vendor.mtk.ext.dolby.vision.cpu-boost", 1);
+                    videoFormat.setInteger("vendor.mtk.vdec.bq.guard.interval.time.value", 2);
+                    videoFormat.setInteger("vendor.mtk.vdec.buffer.fetch.timeout.ms.value", 2);
+                    logToFile("Test CPU boost from Wilber");
+
+                    setNewOption = true;
+                }
+            }
             else if (isDecoderInList(kirinDecoderPrefixes, decoderInfo.getName())) {
                 if (tryNumber < 4) {
                     // Kirin low latency options
@@ -602,6 +625,15 @@ public class MediaCodecHelper {
         }
 
         return setNewOption;
+    }
+
+    private static void logToFile(String message) {
+        File logFile = new File(appContext.getExternalFilesDir(null), "wilber_log.txt");
+        try (FileWriter writer = new FileWriter(logFile, true)) {
+            writer.write(System.currentTimeMillis() + ": " + message + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static boolean decoderSupportsFusedIdrFrame(MediaCodecInfo decoderInfo, String mimeType) {
