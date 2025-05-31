@@ -607,4 +607,11 @@
     <!-- Compliance -->
     <string name="category_basic_settings" />
     <string name="title_checkbox_stretch_video" />
+
+    <!-- floating modifier keys -->
+    <string name="game_menu_toggle_floating_modifier_keys">Toggle Floating Modifier Keys</string>
+    <string name="title_checkbox_show_floating_modifier_keys">Show floating modifier keys</string>
+    <string name="summary_checkbox_show_floating_modifier_keys">Show floating Ctrl, Alt, Shift keys overlay on touchscreen</string>
+    <string name="title_floating_modifier_keys_opacity">Floating Modifier Keys Opacity</string>
+    <string name="summary_floating_modifier_keys_opacity">Adjust the opacity of floating modifier keys</string>
 </resources>
